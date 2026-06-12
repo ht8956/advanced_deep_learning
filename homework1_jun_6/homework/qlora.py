@@ -28,7 +28,6 @@ class QLoRALinear(Linear4Bit):
         self.lora_b.weight.requires_grad_(True)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # TODO: Forward. Make sure to cast inputs to self.linear_dtype and the output back to x.dtype
         with torch.no_grad():
             base = super().forward(x.to(torch.float32))
         lora = self.lora_b(self.lora_a(x.to(torch.float32)))
