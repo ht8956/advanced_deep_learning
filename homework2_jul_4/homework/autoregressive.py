@@ -55,10 +55,53 @@ class AutoregressiveModel(torch.nn.Module, Autoregressive):
 
     def __init__(self, d_latent: int = 128, n_tokens: int = 2**10):
         super().__init__()
-        raise NotImplementedError()
+        self.n_tokens = n_tokens
+        self.max_seq_len = 1024
+
+        self.token_embedding = torch.nn.Embedding(n_tokens, d_latent)
+        self.position_embedding = torch.nn.Embedding(self.max_seq_len, d_latent)
+        self.start_token = torch.nn.Parameter(torch.zeros(d_latent))
+
+        layer = torch.nn.TransformerEncoderLayer(
+            d_model=d_latent,
+            nhead=8,
+            dim_feedforward=4 * d_latent,
+            batch_first=True,
+            activation="gelu",
+        )
+        self.transformer = torch.nn.TransformerEncoder(layer, num_layers=4)
+        self.head = torch.nn.Linear(d_latent, n_tokens)
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
-        raise NotImplementedError()
+        B, h, w = x.shape
+        T = h * w
+        if T > self.max_seq_len:
+            raise ValueError(f"Sequence length {T} exceeds max_seq_len={self.max_seq_len}")
+
+        x_seq = x.reshape(B, T).long()
+
+        pos = torch.arange(T, device=x.device)
+        tok = self.token_embedding(x_seq)
+        tok = tok + self.position_embedding(pos)[None]
+
+        start = self.start_token[None, None, :].expand(B, 1, -1)
+        tok_shifted = torch.cat([start, tok[:, :-1]], dim=1)
+
+        causal_mask = torch.nn.Transformer.generate_square_subsequent_mask(T, device=x.device)
+        hidden = self.transformer(tok_shifted, mask=causal_mask)
+        logits = self.head(hidden).reshape(B, h, w, self.n_tokens)
+        return logits, {}
 
     def generate(self, B: int = 1, h: int = 30, w: int = 20, device=None) -> torch.Tensor:  # noqa
-        raise NotImplementedError()
+        if device is None:
+            device = next(self.parameters()).device
+
+        T = h * w
+        x = torch.zeros(B, T, dtype=torch.long, device=device)
+
+        for t in range(T):
+            logits, _ = self.forward(x.reshape(B, h, w))
+            logits = logits.reshape(B, T, self.n_tokens)
+            x[:, t] = torch.distributions.Categorical(logits=logits[:, t]).sample()
+
+        return x.reshape(B, h, w)
