@@ -11,21 +11,15 @@ class CoTModel(BaseLLM):
             {
                 "role": "system",
                 "content": (
-                    "You solve numeric math and unit-conversion questions. Be concise and accurate. "
-                    "Return exactly one line in this format: <answer>NUMBER</answer>. "
-                    "Do not include units, words, or extra text outside the tag. "
-                    "Use decimal numbers when needed."
+                    "You are a helpful math tutor. Solve the problem briefly and correctly. "
+                    "Be concise. Show minimal reasoning, then give only the final numeric value "
+                    "inside <answer></answer>."
                 ),
             },
-            {"role": "user", "content": "Can you change 2 hour to its equivalent in min?"},
+            {"role": "user", "content": "What is 7 * 8 + 6?"},
             {
                 "role": "assistant",
-                "content": "<answer>120</answer>",
-            },
-            {"role": "user", "content": "Please convert 6 mi/h into m/s."},
-            {
-                "role": "assistant",
-                "content": "<answer>2.68224</answer>",
+                "content": "7 * 8 = 56, then 56 + 6 = 62. <answer>62</answer>",
             },
             {"role": "user", "content": question},
         ]
