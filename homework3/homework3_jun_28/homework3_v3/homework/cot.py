@@ -12,15 +12,20 @@ class CoTModel(BaseLLM):
                 "role": "system",
                 "content": (
                     "You solve numeric math and unit-conversion questions. Be concise and accurate. "
-                    "Use short reasoning, then output the final result as a number inside "
-                    "<answer></answer>. Do not include units inside the answer tag. "
-                    "If needed, use decimals. The final line must be exactly one answer tag."
+                    "Return exactly one line in this format: <answer>NUMBER</answer>. "
+                    "Do not include units, words, or extra text outside the tag. "
+                    "Use decimal numbers when needed."
                 ),
             },
             {"role": "user", "content": "Can you change 2 hour to its equivalent in min?"},
             {
                 "role": "assistant",
-                "content": "1 hour = 60 min, so 2 hour = 2 * 60 = 120 min.\n<answer>120</answer>",
+                "content": "<answer>120</answer>",
+            },
+            {"role": "user", "content": "Please convert 6 mi/h into m/s."},
+            {
+                "role": "assistant",
+                "content": "<answer>2.68224</answer>",
             },
             {"role": "user", "content": question},
         ]
