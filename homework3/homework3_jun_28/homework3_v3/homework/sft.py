@@ -89,7 +89,7 @@ def train_model(
 
     llm = BaseLLM()
 
-    lora_rank = int(kwargs.pop("r", 4))
+    lora_rank = int(kwargs.pop("r", 8))
     lora_alpha = int(kwargs.pop("lora_alpha", 4 * lora_rank))
 
     lora_cfg = LoraConfig(
@@ -114,13 +114,14 @@ def train_model(
         output_dir=output_dir,
         logging_dir=output_dir,
         report_to="tensorboard",
-        learning_rate=float(kwargs.pop("learning_rate", 2e-4)),
-        num_train_epochs=float(kwargs.pop("num_train_epochs", 3)),
+        learning_rate=float(kwargs.pop("learning_rate", 1e-4)),
+        num_train_epochs=float(kwargs.pop("num_train_epochs", 5)),
         per_device_train_batch_size=int(kwargs.pop("per_device_train_batch_size", 32)),
         gradient_checkpointing=True,
         remove_unused_columns=False,
         logging_steps=int(kwargs.pop("logging_steps", 10)),
         save_strategy="epoch",
+        weight_decay=float(kwargs.pop("weight_decay", 0.01)),
     )
 
     trainer = Trainer(
