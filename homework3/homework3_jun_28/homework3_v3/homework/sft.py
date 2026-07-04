@@ -118,10 +118,6 @@ def train_model(
         num_train_epochs=float(kwargs.pop("num_train_epochs", 5)),
         per_device_train_batch_size=int(kwargs.pop("per_device_train_batch_size", 32)),
         gradient_checkpointing=True,
-        remove_unused_columns=False,
-        logging_steps=int(kwargs.pop("logging_steps", 10)),
-        save_strategy="epoch",
-        weight_decay=float(kwargs.pop("weight_decay", 0.01)),
     )
 
     trainer = Trainer(
