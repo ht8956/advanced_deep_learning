@@ -49,7 +49,11 @@ def format_example(prompt: str, answer: str) -> dict[str, str]:
     """
     Construct a question / answer pair. Consider rounding the answer to make it easier for the LLM.
     """
-    raise NotImplementedError()
+    rounded_answer = round(float(answer), 3)
+    return {
+        "question": prompt,
+        "answer": f"<answer>{rounded_answer}</answer>",
+    }
 
 
 class TokenizedDataset:
@@ -75,11 +79,62 @@ class TokenizedDataset:
 
 
 def train_model(
-    output_dir: str,
+    output_dir: str = "sft_runs",
     **kwargs,
 ):
-    raise NotImplementedError()
-    test_model(output_dir)
+    from pathlib import Path
+
+    from peft import LoraConfig, get_peft_model
+    from transformers import Trainer, TrainingArguments
+
+    llm = BaseLLM()
+
+    lora_rank = int(kwargs.pop("r", 4))
+    lora_alpha = int(kwargs.pop("lora_alpha", 4 * lora_rank))
+
+    lora_cfg = LoraConfig(
+        r=lora_rank,
+        lora_alpha=lora_alpha,
+        target_modules="all-linear",
+        bias="none",
+        task_type="CAUSAL_LM",
+    )
+    llm.model = get_peft_model(llm.model, lora_cfg)
+
+    # Avoid known issues with gradient checkpointing on accelerated backends.
+    if llm.device != "cpu" and hasattr(llm.model, "enable_input_require_grads"):
+        llm.model.enable_input_require_grads()
+
+    llm.model.config.use_cache = False
+
+    trainset = Dataset("train")
+    tokenized_dataset = TokenizedDataset(llm.tokenizer, trainset, format_example)
+
+    train_args = TrainingArguments(
+        output_dir=output_dir,
+        logging_dir=output_dir,
+        report_to="tensorboard",
+        learning_rate=float(kwargs.pop("learning_rate", 2e-4)),
+        num_train_epochs=float(kwargs.pop("num_train_epochs", 3)),
+        per_device_train_batch_size=int(kwargs.pop("per_device_train_batch_size", 32)),
+        gradient_checkpointing=True,
+        remove_unused_columns=False,
+        logging_steps=int(kwargs.pop("logging_steps", 10)),
+        save_strategy="epoch",
+    )
+
+    trainer = Trainer(
+        model=llm.model,
+        args=train_args,
+        train_dataset=tokenized_dataset,
+    )
+    trainer.train()
+
+    final_model_dir = Path(__file__).parent / "sft_model"
+    final_model_dir.mkdir(parents=True, exist_ok=True)
+    trainer.save_model(str(final_model_dir))
+
+    test_model(str(final_model_dir))
 
 
 def test_model(ckpt_path: str):
