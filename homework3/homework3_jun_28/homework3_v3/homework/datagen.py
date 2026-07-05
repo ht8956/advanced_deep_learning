@@ -1,8 +1,8 @@
 def generate_dataset(
     output_json: str = "data/rft.json",
-    oversample: int = 10,
-    temperature: float = 0.6,
-    checkpoint: str = "HuggingFaceTB/SmolLM2-360M-Instruct",
+    oversample: int = 20,
+    temperature: float = 0.4,
+    checkpoint: str = "HuggingFaceTB/SmolLM2-1.7B-Instruct",
 ):
     import json
     from pathlib import Path

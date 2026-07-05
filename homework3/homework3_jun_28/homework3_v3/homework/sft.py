@@ -29,7 +29,7 @@ def tokenize(tokenizer, question: str, answer: str):
 
     tokenizer.padding_side = "right"
     tokenizer.pad_token = tokenizer.eos_token
-    full = tokenizer(full_text, padding="max_length", truncation=True, max_length=128)
+    full = tokenizer(full_text, padding="max_length", truncation=True, max_length=256)
 
     input_ids = full["input_ids"]
     question_len = len(tokenizer(question)["input_ids"])

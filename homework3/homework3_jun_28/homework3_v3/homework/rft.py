@@ -72,10 +72,11 @@ def train_model(
         output_dir=output_dir,
         logging_dir=output_dir,
         report_to="tensorboard",
-        learning_rate=float(kwargs.pop("learning_rate", 5e-4)),
+        learning_rate=float(kwargs.pop("learning_rate", 3e-4)),
         num_train_epochs=float(kwargs.pop("num_train_epochs", 5)),
         per_device_train_batch_size=int(kwargs.pop("per_device_train_batch_size", 32)),
         gradient_checkpointing=True,
+        lr_scheduler_type="cosine",
     )
 
     trainer = Trainer(
