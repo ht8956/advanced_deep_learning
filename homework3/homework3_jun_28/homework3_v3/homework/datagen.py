@@ -1,4 +1,9 @@
-def generate_dataset(output_json: str = "data/rft.json", oversample: int = 10, temperature: float = 0.6):
+def generate_dataset(
+    output_json: str = "data/rft.json",
+    oversample: int = 10,
+    temperature: float = 0.6,
+    checkpoint: str = "HuggingFaceTB/SmolLM2-360M-Instruct",
+):
     import json
     from pathlib import Path
 
@@ -13,17 +18,19 @@ def generate_dataset(output_json: str = "data/rft.json", oversample: int = 10, t
         out_path = repo_root / out_path
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    model = CoTModel(checkpoint="HuggingFaceTB/SmolLM2-1.7B-Instruct")
+    model = CoTModel(checkpoint=checkpoint)
     dataset = Dataset("train")
 
-    questions = [item[0] for item in dataset.data]
-    prompts = [model.format_prompt(question) for question in questions]
-    generations = model.batched_generate(prompts, num_return_sequences=oversample, temperature=temperature)
-
     output_data: list[list[str | float]] = []
-    for (question, correct_answer), candidate_generations in tqdm(
-        zip(dataset.data, generations), total=len(dataset), desc="Selecting RFT samples"
-    ):
+    for question, correct_answer in tqdm(dataset.data, total=len(dataset), desc="Selecting RFT samples"):
+        prompt = model.format_prompt(question)
+        # Generate per question to keep memory bounded on smaller GPUs.
+        candidate_generations = model.batched_generate(
+            [prompt],
+            num_return_sequences=oversample,
+            temperature=temperature,
+        )[0]
+
         selected_generation = None
         for generation in candidate_generations:
             parsed_answer = model.parse_answer(generation)
