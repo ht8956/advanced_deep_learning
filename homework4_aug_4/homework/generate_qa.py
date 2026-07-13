@@ -223,7 +223,7 @@ def extract_kart_objects(
         kart_objects.append(
             {
                 "instance_id": track_id,
-                "kart_name": kart_names.get(track_id, f"kart_{track_id}"),
+                "kart_name": kart_names.get(track_id),
                 "center": center,
                 "distance_to_center": (center[0] - image_center[0]) ** 2 + (center[1] - image_center[1]) ** 2,
             }
@@ -331,10 +331,12 @@ def generate_qa_pairs(info_path: str, view_index: int, img_width: int = 150, img
     track_name = extract_track_info(info_path)
 
     qa_pairs = [
-        {"question": "What kart is the ego car?", "answer": ego_kart["kart_name"]},
         {"question": "How many karts are there in the scenario?", "answer": str(len(kart_objects))},
         {"question": "What track is this?", "answer": track_name},
     ]
+
+    if ego_kart["kart_name"]:
+        qa_pairs.insert(0, {"question": "What kart is the ego car?", "answer": ego_kart["kart_name"]})
 
     left_count = 0
     right_count = 0
@@ -346,8 +348,8 @@ def generate_qa_pairs(info_path: str, view_index: int, img_width: int = 150, img
         delta_y = kart["center"][1] - ego_kart["center"][1]
 
         horizontal_position = "left" if delta_x < 0 else "right"
-        depth_position = "front" if delta_y < 0 else "behind"
-        relative_position = f"{depth_position} {horizontal_position}"
+        depth_position = "front" if delta_y < 0 else "back"
+        relative_position = f"{depth_position} and {horizontal_position}"
 
         if horizontal_position == "left":
             left_count += 1
@@ -359,22 +361,23 @@ def generate_qa_pairs(info_path: str, view_index: int, img_width: int = 150, img
         else:
             behind_count += 1
 
-        qa_pairs.extend(
-            [
-                {
-                    "question": f"Is {kart['kart_name']} to the left or right of the ego car?",
-                    "answer": horizontal_position,
-                },
-                {
-                    "question": f"Is {kart['kart_name']} in front of or behind the ego car?",
-                    "answer": depth_position,
-                },
-                {
-                    "question": f"Where is {kart['kart_name']} relative to the ego car?",
-                    "answer": relative_position,
-                },
-            ]
-        )
+        if kart["kart_name"]:
+            qa_pairs.extend(
+                [
+                    {
+                        "question": f"Is {kart['kart_name']} to the left or right of the ego car?",
+                        "answer": horizontal_position,
+                    },
+                    {
+                        "question": f"Is {kart['kart_name']} in front of or behind the ego car?",
+                        "answer": depth_position,
+                    },
+                    {
+                        "question": f"Where is {kart['kart_name']} relative to the ego car?",
+                        "answer": relative_position,
+                    },
+                ]
+            )
 
     qa_pairs.extend(
         [
