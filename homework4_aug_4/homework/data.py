@@ -16,7 +16,7 @@ class VQADataset:
             split: Dataset split ('train', 'valid_grader', 'train_demo')
             data_dir: Directory containing the dataset (default: DATA_DIR)
         """
-        self.data_dir = data_dir or DATA_DIR
+        self.data_dir = Path(data_dir) if isinstance(data_dir, str) else (data_dir or DATA_DIR)
 
         # Load all QA pairs for the split
         self.qa_pairs = []
@@ -61,7 +61,7 @@ class VQADataset:
 
 class CaptionDataset:
     def __init__(self, split: str, data_dir: Path = None, max_samples: int = None):
-        self.data_dir = data_dir or DATA_DIR
+        self.data_dir = Path(data_dir) if isinstance(data_dir, str) else (data_dir or DATA_DIR)
 
         self.captions = []
 
@@ -91,7 +91,7 @@ class CaptionDataset:
 
 class MultiChoiceQADataset:
     def __init__(self, split: str, data_dir: Path = None, max_samples: int = None):
-        self.data_dir = data_dir or DATA_DIR
+        self.data_dir = Path(data_dir) if isinstance(data_dir, str) else (data_dir or DATA_DIR)
 
         metafile = f"{self.data_dir}/{split}/all_mc_qas.json"
 

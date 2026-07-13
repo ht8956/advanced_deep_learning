@@ -135,6 +135,9 @@ def train(
         lora_alpha: LoRA alpha
         lora_dropout: LoRA dropout
     """
+    if isinstance(data_dir, str):
+        data_dir = Path(data_dir)
+
     vlm = BaseVLM()
 
     # Create output directory

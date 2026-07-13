@@ -31,6 +31,18 @@ ORIGINAL_WIDTH = 600
 ORIGINAL_HEIGHT = 400
 
 
+def find_view_image(info_path: Path, view_index: int) -> Path | None:
+    """
+    Find the corresponding rendered image for a frame/view using common extensions.
+    """
+    base_name = info_path.stem.replace("_info", "")
+    for extension in ("jpg", "jpeg", "png"):
+        candidate = info_path.parent / f"{base_name}_{view_index:02d}_im.{extension}"
+        if candidate.exists():
+            return candidate
+    return None
+
+
 def extract_frame_info(image_path: str) -> tuple[int, int]:
     """
     Extract frame ID and view index from image filename.
@@ -169,6 +181,35 @@ def extract_kart_objects(
                 yield from iter_dicts(item)
 
     kart_names = {}
+
+    # Prefer explicit kart lists when present to avoid noisy id->name mappings.
+    for list_key in ("karts", "players", "racers"):
+        entries = info.get(list_key)
+        if not isinstance(entries, list):
+            continue
+        for item in entries:
+            if not isinstance(item, dict):
+                continue
+            id_value = None
+            for id_key in ("track_id", "instance_id", "kart_id", "id"):
+                if id_key in item:
+                    try:
+                        id_value = int(item[id_key])
+                    except (TypeError, ValueError):
+                        id_value = None
+                    break
+            if id_value is None:
+                continue
+
+            name_value = None
+            for name_key in ("kart_name", "kart", "name"):
+                candidate = item.get(name_key)
+                if isinstance(candidate, str) and candidate.strip():
+                    name_value = candidate.strip().lower()
+                    break
+            if name_value is not None:
+                kart_names[id_value] = name_value
+
     for item in iter_dicts(info):
         id_value = None
         for id_key in ("track_id", "instance_id", "kart_id", "id"):
@@ -192,7 +233,8 @@ def extract_kart_objects(
         if name_value is None:
             continue
 
-        if any(key in item for key in ("kart_name", "kart", "kart_id", "track_id", "instance_id")):
+        # Only accept recursive fallbacks when the dict itself is kart-specific.
+        if any(key in item for key in ("kart_name", "kart", "kart_id")):
             kart_names[id_value] = name_value
 
     scale_x = img_width / ORIGINAL_WIDTH
@@ -401,8 +443,11 @@ def check_qa_pairs(info_file: str, view_index: int):
     """
     # Find corresponding image file
     info_path = Path(info_file)
-    base_name = info_path.stem.replace("_info", "")
-    image_file = list(info_path.parent.glob(f"{base_name}_{view_index:02d}_im.jpg"))[0]
+    image_file = find_view_image(info_path, view_index)
+    if image_file is None:
+        raise FileNotFoundError(
+            f"No image found for view {view_index} near {info_path}. Expected *_im.jpg, *_im.jpeg, or *_im.png"
+        )
 
     # Visualize detections
     annotated_image = draw_detections(str(image_file), info_file)
@@ -455,10 +500,11 @@ def generate_split(split: str = "train", data_dir: str | None = None) -> list[st
 
         num_views = len(info.get("detections", []))
         for view_index in range(num_views):
-            image_name = f"{base_name}_{view_index:02d}_im.jpg"
-            image_path = split_dir / image_name
-            if not image_path.exists():
+            image_path = find_view_image(info_path, view_index)
+            if image_path is None:
                 continue
+
+            image_name = image_path.name
 
             qa_pairs = generate_qa_pairs(str(info_path), view_index)
             for qa_pair in qa_pairs:
@@ -471,6 +517,7 @@ def generate_split(split: str = "train", data_dir: str | None = None) -> list[st
                 )
 
         if not all_qa_pairs:
+            print(f"Skipped {info_path}: no QA pairs were generated")
             continue
 
         output_path = split_dir / f"{base_name}_qa_pairs.json"
