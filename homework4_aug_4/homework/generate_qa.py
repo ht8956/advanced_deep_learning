@@ -368,10 +368,8 @@ def generate_qa_pairs(info_path: str, view_index: int, img_width: int = 150, img
     if not kart_objects:
         return []
 
-    # Prefer track_id==0 as ego when available in metadata; fallback to center-based heuristic.
-    ego_kart = next((kart for kart in kart_objects if kart["instance_id"] == 0), None)
-    if ego_kart is None:
-        ego_kart = next((kart for kart in kart_objects if kart["is_center_kart"]), kart_objects[0])
+    # Staff tip: the ego car is the kart closest to the center of the image.
+    ego_kart = next((kart for kart in kart_objects if kart["is_center_kart"]), kart_objects[0])
     other_karts = [kart for kart in kart_objects if kart["instance_id"] != ego_kart["instance_id"]]
     track_name = extract_track_info(info_path)
 
