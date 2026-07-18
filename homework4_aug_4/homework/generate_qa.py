@@ -171,15 +171,6 @@ def extract_kart_objects(
     if view_index < 0 or view_index >= len(detections):
         return []
 
-    def iter_dicts(value):
-        if isinstance(value, dict):
-            yield value
-            for nested_value in value.values():
-                yield from iter_dicts(nested_value)
-        elif isinstance(value, list):
-            for item in value:
-                yield from iter_dicts(item)
-
     kart_names = {}
 
     # Staff spec: `karts` is a list of kart names indexed by track_id.
@@ -216,33 +207,6 @@ def extract_kart_objects(
                     break
             if name_value is not None:
                 kart_names[id_value] = name_value
-
-    for item in iter_dicts(info):
-        id_value = None
-        for id_key in ("track_id", "instance_id", "kart_id", "id"):
-            if id_key in item:
-                try:
-                    id_value = int(item[id_key])
-                except (TypeError, ValueError):
-                    id_value = None
-                break
-
-        if id_value is None:
-            continue
-
-        name_value = None
-        for name_key in ("kart_name", "kart", "name"):
-            candidate = item.get(name_key)
-            if isinstance(candidate, str) and candidate.strip():
-                name_value = candidate.strip().lower()
-                break
-
-        if name_value is None:
-            continue
-
-        # Only accept recursive fallbacks when the dict itself is kart-specific.
-        if any(key in item for key in ("kart_name", "kart", "kart_id")):
-            kart_names[id_value] = name_value
 
     scale_x = img_width / ORIGINAL_WIDTH
     scale_y = img_height / ORIGINAL_HEIGHT
