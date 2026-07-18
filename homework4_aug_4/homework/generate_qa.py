@@ -182,6 +182,13 @@ def extract_kart_objects(
 
     kart_names = {}
 
+    # Staff spec: `karts` is a list of kart names indexed by track_id.
+    karts_list = info.get("karts")
+    if isinstance(karts_list, list):
+        for track_id, kart_name in enumerate(karts_list):
+            if isinstance(kart_name, str) and kart_name.strip():
+                kart_names[track_id] = kart_name.strip().lower()
+
     # Prefer explicit kart lists when present to avoid noisy id->name mappings.
     for list_key in ("karts", "players", "racers"):
         entries = info.get(list_key)
