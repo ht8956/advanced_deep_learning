@@ -119,6 +119,7 @@ def train(
     lora_alpha: int = 32,
     lora_dropout: float = 0.0,
     num_workers: int = 16,
+    resume_from_checkpoint: str | None = None,
 ):
     """
     Fine-tune a VLM model using LoRA.
@@ -208,8 +209,8 @@ def train(
         data_collator=custom_data_collator,
     )
 
-    # Train the model
-    trainer.train()
+    # Train the model. Resume when a checkpoint path is provided.
+    trainer.train(resume_from_checkpoint=resume_from_checkpoint)
 
     # Save the model
     trainer.save_model(output_dir)
