@@ -1,6 +1,11 @@
 from .base_vlm import BaseVLM
-from .clip import load as load_clip
 from .data import VQADataset, benchmark
+
+
+def load_clip(*args, **kwargs):
+    from .clip import load
+
+    return load(*args, **kwargs)
 
 
 def load_vlm(*args, **kwargs):
