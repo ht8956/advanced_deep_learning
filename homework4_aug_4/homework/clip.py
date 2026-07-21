@@ -136,6 +136,13 @@ class CLIP(nn.Module):
         """Customize load method, load projection additional parameters"""
 
         additional_weights_path = Path(load_directory) / "additional_weights.pt"
+        if not additional_weights_path.exists():
+            # Trainer checkpoints store adapter weights, but projection weights are saved in the run root.
+            # Fall back to parent directory so checkpoint-* paths can still be evaluated correctly.
+            parent_weights_path = Path(load_directory).parent / "additional_weights.pt"
+            if parent_weights_path.exists():
+                additional_weights_path = parent_weights_path
+
         if additional_weights_path.exists():
             additional_state_dict = torch.load(additional_weights_path, map_location="cpu")
 
@@ -364,7 +371,7 @@ def test(ckpt_path: str, val_dataset: str = "valid_grader"):
     testset = MultiChoiceQADataset(val_dataset)
 
     clip = load(ckpt_path)
-    clip = clip.model.to(device)
+    clip = clip.to(device)
 
     image_processor = tv.transforms.Compose(
         [
