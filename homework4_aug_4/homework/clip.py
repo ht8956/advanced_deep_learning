@@ -371,7 +371,12 @@ def test(ckpt_path: str, val_dataset: str = "valid_grader"):
     testset = MultiChoiceQADataset(val_dataset)
 
     clip = load(ckpt_path)
+    if hasattr(clip, "get_base_model"):
+        clip = clip.get_base_model()
+    elif hasattr(clip, "model"):
+        clip = clip.model
     clip = clip.to(device)
+    clip.eval()
 
     image_processor = tv.transforms.Compose(
         [
